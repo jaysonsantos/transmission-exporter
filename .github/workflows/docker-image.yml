@@ -1,0 +1,37 @@
+name: Docker Image CI
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      packages: write
+      contents: read
+    strategy:
+      matrix:
+        include:
+          - GOARCH: amd64
+            docker_arch: linux/amd64
+          - GOARCH: arm64
+            docker_arch: linux/arm64
+          - GOARCH: arm
+            GOARM: 7
+            docker_arch: linux/arm/v7
+
+    steps:
+    - uses: actions/checkout@v3
+    - run: docker buildx create --use
+    - name: Login to docker
+      run: |
+        echo  ${{ secrets.GITHUB_TOKEN }} | docker login --username ${{ github.actor }} --password-stdin ghcr.io
+    - run: CGO_ENABLED=0 go build ./cmd/transmission-exporter/
+      env:
+        GOARCH: ${{ matrix.GOARCH }}
+        GOARM: ${{ matrix.GOARM }}
+    - name: Build the Docker image
+      run: docker buildx build --platform ${{ matrix.docker_arch }} --push --file Dockerfile --tag ghcr.io/jaysonsantos/transmission-exporter:$(date +%s) .
