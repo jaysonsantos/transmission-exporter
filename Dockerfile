@@ -1,5 +1,4 @@
-FROM alpine:latest
-RUN apk add --update ca-certificates
+FROM gcr.io/distroless/static
 
 ADD ./transmission-exporter /usr/bin/transmission-exporter
 
